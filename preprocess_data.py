@@ -93,6 +93,19 @@ def preprocess_two_domains(data, domain_name_1, domain_name_2):
     with open(output_file_name_2, 'w', encoding='utf8') as json_file:
         json.dump(overlapping_domain_2, json_file, ensure_ascii=False)
 
+def generate_product_ratings_dict(data):
+  for domain in data:
+    product_rating_dict = {}
+    for item in data[domain]:
+        if item['asin'] in product_rating_dict:
+            product_rating_dict[item['asin']].append([item['reviewerID'], item['overall']])
+        else:
+            product_rating_dict[item['asin']] = [[item['reviewerID'], item['overall']]]
+
+    output_file_name = './data/product_ratings_' + domain + '.json'
+    with open(output_file_name, 'w', encoding='utf8') as json_file:
+        json.dump(product_rating_dict, json_file, ensure_ascii=False)
+
 def prepare_unlabeled_data(datasets, domain_name):
     print('------- Processing -------')
     print('Preparing unlabeled data for domain {0}'.format(domain_name))
@@ -107,20 +120,20 @@ def prepare_unlabeled_data(datasets, domain_name):
         else:
             product[item['asin']] = 1
 
-    # print('read product dictionary done')
+    print('read product dictionary done')
 
     for k in list(product):
         if product[k] < 30:
             product.pop(k)
 
-    count = 0
-    while count < len(data):
-        if data[count]['asin'] not in product:
-            data.pop(count)
-        else:
-            count += 1
+    # count = 0
+    # while count < len(data):
+    #     if data[count]['asin'] not in product:
+    #         data.pop(count)
+    #     else:
+    #         count += 1
 
-    # print('remove products done')
+    print('remove products done')
 
     reviewer = {}
     for item in data:
@@ -133,7 +146,7 @@ def prepare_unlabeled_data(datasets, domain_name):
         if reviewer[k] < 10:
             reviewer.pop(k)
 
-    # print('poping data done')
+    print('poping data done')
 
     new_data = []
     for idx in range(len(data)):
@@ -154,16 +167,17 @@ def prepare_unlabeled_data(datasets, domain_name):
     # print('numebr of products: ' + str(len(product)))
 
 def main():
-  data = read_datasets()
-  preprocess_two_domains(data, 'Movies', 'Music')
-  preprocess_two_domains(data, 'Movies', 'Books')
-  preprocess_two_domains(data, 'Books', 'Music')
-  preprocess_two_domains(data, 'Books', 'Movies')
-  preprocess_two_domains(data, 'Music', 'Movies')
-  preprocess_two_domains(data, 'Music', 'Books')
-  prepare_unlabeled_data(data, 'Books')
-  prepare_unlabeled_data(data, 'Music')
-  prepare_unlabeled_data(data, 'Movies')
+  all_datasets = read_datasets()
+  prepare_unlabeled_data(all_datasets, 'Books')
+  prepare_unlabeled_data(all_datasets, 'Music')
+  prepare_unlabeled_data(all_datasets, 'Movies')
+  preprocess_two_domains(all_datasets, 'Movies', 'Music')
+  preprocess_two_domains(all_datasets, 'Movies', 'Books')
+  preprocess_two_domains(all_datasets, 'Books', 'Music')
+  preprocess_two_domains(all_datasets, 'Books', 'Movies')
+  preprocess_two_domains(all_datasets, 'Music', 'Movies')
+  preprocess_two_domains(all_datasets, 'Music', 'Books')
+  generate_product_ratings_dict(all_datasets)
 
 if __name__ == '__main__':
     main()
