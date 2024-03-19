@@ -3,69 +3,21 @@ import random
 from tqdm import tqdm
 
 
-def data_conversion():
-    with open('./reviews_CDs_and_Vinyl_5.json') as f:
-        lines = f.readlines()
-
-    print('data reading done')
-
-    whole_target_data = []
-    for line in lines:
-        record = json.loads(line)
-        if 'reviewText' in record and 'asin' in record and 'reviewerID' in record and 'overall' in record:
-            whole_target_data.append(record)
-
-    print('start converting')
-
-    converted_data = {}
-
-    for record in tqdm(whole_target_data):
-        user_id = record['reviewerID']
-        product_id = record['asin']
-        # reviewText or summary
-        review = record['reviewText']
-
-        if user_id not in converted_data:
-            converted_data[user_id] = {}
-            converted_data[user_id][product_id] = review
-        else:
-            converted_data[user_id][product_id] = review
-
-    print('start writing')
-
-    with open('converted_music_reviewText.json', 'w', encoding='utf8') as json_file:
-        json.dump(converted_data, json_file, ensure_ascii=False)
-
 def generate_target_aux_doc(cold_start_users, domain='Books_Movies', mode='summary'):
 
     aux_doc_dict = {}
 
-    if domain == 'Books_Movies':
-        if mode == 'summary':
-            converted_file_name = './converted_movies.json'
-        elif mode == 'reviewText':
-            converted_file_name = './converted_movies_reviewText.json'
+    domain_index = domain.index("_")
+    domain_1 = domain[:domain_index]
+    domain_2 = domain[domain_index + 1:]
 
-        target_file_name = './aux_data/product_ratings_movies.json'
-        source_file_name = './aux_data/product_ratings_book.json'
+    if mode == 'summary':
+        converted_file_name = './data/converted_' + domain_2 + '_summary.json'
+    else:
+        converted_file_name = './data/converted_' + domain_2 + '_reviewText.json'
 
-    elif domain == 'Movies_Music':
-        if mode == 'summary':
-            converted_file_name = './converted_music.json'
-        elif mode == 'reviewText':
-            converted_file_name = './converted_music_reviewText.json'
-
-        target_file_name = './aux_data/product_ratings_music.json'
-        source_file_name = './aux_data/product_ratings_movies.json'
-
-    elif domain == 'Books_Music':
-        if mode == 'summary':
-            converted_file_name = './converted_music.json'
-        elif mode == 'reviewText':
-            converted_file_name = './converted_music_reviewText.json'
-
-        target_file_name = './aux_data/product_ratings_music.json'
-        source_file_name = './aux_data/product_ratings_book.json'
+    source_file_name = './data/product_ratings_' + domain_1 + '.json'
+    target_file_name = './data/product_ratings_' + domain_2 + '.json'
 
     with open(converted_file_name) as json_file:
         converted_data = json.load(json_file)
@@ -105,11 +57,11 @@ def generate_target_aux_doc(cold_start_users, domain='Books_Movies', mode='summa
         count = 0
         common_count = 0
         user_aux_doc = ""
-        # print('current user: ' + user)
+
         for products in source_users_to_products[user]:
             product = products[0]
             rating = products[1]
-            # print('user records in source domain: ' + str(products))
+
             users_with_reviews_source = source_data[product]
 
             like_minded_users = []
@@ -145,16 +97,5 @@ def generate_target_aux_doc(cold_start_users, domain='Books_Movies', mode='summa
 
             user_aux_doc += converted_data[random_user][random_review[0]] + ' '
 
-            # for record in whole_target_data:
-            #     if record['reviewerID'] == random_user and record['asin'] == random_review[0]:
-            #         user_aux_doc += record[mode] + ' '
-
         aux_doc_dict[user] = user_aux_doc
-        # print('{0} users rated this item in the source domain have reviews in target domain'.format(common_count))
-        # print(count)
-        # print(user_aux_doc)
     return aux_doc_dict
-
-
-# generate_target_aux_doc_topk()
-# data_conversion()
