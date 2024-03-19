@@ -5,151 +5,31 @@ import models
 import aux_proc
 from torch.utils.data import DataLoader
 
-
-def CATN_one_domain():
-    with open('./reviews_Books_5.json') as f:
-        lines = f.readlines()
-
-    data = []
-    for l in lines:
-        record = json.loads(l)
-        if 'reviewText' in record and 'asin' in record and 'reviewerID' in record and 'overall' in record:
-            data.append(record)
-    print('data reading done')
-
-    product = {}
-    for item in data:
-        if item['asin'] in product:
-            product[item['asin']] += 1
-        else:
-            product[item['asin']] = 1
-
-    print('review product dictionary done')
-
-    for k in list(product):
-        if product[k] < 30:
-            product.pop(k)
-
-    count = 0
-    while count < len(data):
-        if data[count]['asin'] not in product:
-            data.pop(count)
-        else:
-            count += 1
-
-    print('remove products done')
-
-    reviewer = {}
-    for item in data:
-        if item['reviewerID'] not in reviewer:
-            reviewer[item['reviewerID']] = 1
-        else:
-            reviewer[item['reviewerID']] += 1
-
-    for k in list(reviewer):
-        if reviewer[k] < 10:
-            reviewer.pop(k)
-
-    print('poping data done')
-
-    new_data = []
-    for idx in range(len(data)):
-        if data[idx]['reviewerID'] in reviewer and data[idx]['asin'] in product:
-            new_data.append(data[idx])
-
-    print(len(new_data))
-
-    print('numebr of users: ' + str(len(reviewer)))
-    print('numebr of products: ' + str(len(product)))
-
-    with open('Books_30_10.json', 'w', encoding='utf8') as json_file:
-        json.dump(new_data, json_file, ensure_ascii=False)
-
-
-def CATN_two_domains():
-    with open('./Books_30_10.json') as json_file:
-        domain_1 = json.load(json_file)
-
-    with open('./Movies_30_10.json') as json_file:
-        domain_2 = json.load(json_file)
-
-    user_1 = set()
-    for item in domain_1:
-        user_1.add(item['reviewerID'])
-
-    user_2 = set()
-    for item in domain_2:
-        user_2.add(item['reviewerID'])
-
-    print('# of users in domain 1 :{0}, domain 2: {1}'.format(len(user_1), len(user_2)))
-    print('# of records in domain 1 :{0}, records 2: {1}'.format(len(domain_1), len(domain_2)))
-
-    overlapping_users = set()
-
-    for user in user_1:
-        if user in user_2:
-            overlapping_users.add(user)
-
-    print('# of overlapping users: ' + str(len(overlapping_users)))
-
-    overlapping_domain_1 = {}
-    for item in domain_1:
-        if item['reviewerID'] in overlapping_users:
-            if item['reviewerID'] not in overlapping_domain_1:
-                overlapping_domain_1[item['reviewerID']] = [item]
-            else:
-                overlapping_domain_1[item['reviewerID']].append(item)
-
-    overlapping_domain_2 = {}
-    for item in domain_2:
-        if item['reviewerID'] in overlapping_users:
-            if item['reviewerID'] not in overlapping_domain_2:
-                overlapping_domain_2[item['reviewerID']] = [item]
-            else:
-                overlapping_domain_2[item['reviewerID']].append(item)
-
-    count_1 = 0
-    for idx in overlapping_domain_1:
-        count_1 += len(overlapping_domain_1[idx])
-
-    count_2 = 0
-    for idx in overlapping_domain_2:
-        count_2 += len(overlapping_domain_2[idx])
-
-    print('# of overlapping records in domain 1 :{0}, records 2: {1}'.format(count_1, count_2))
-
-    with open('BooksMovies_Books.json', 'w', encoding='utf8') as json_file:
-        json.dump(overlapping_domain_1, json_file, ensure_ascii=False)
-
-    with open('BooksMovies_Movies.json', 'w', encoding='utf8') as json_file:
-        json.dump(overlapping_domain_2, json_file, ensure_ascii=False)
-
-
-def train_eval_test_split_per_domain(domains):
-    ratio = 1
+def train_eval_test_split(domains, split_ratio=1):
     if domains =="Movies_Music":
-        domain1_file = './MoviesMusic_Movies_alcdr.json'
-        domain2_file = './MoviesMusic_Music_alcdr.json'
-        # domain1_file = './MoviesMusic_Movies.json'
-        # domain2_file = './MoviesMusic_Music.json'
+        domain1_file = './data/MoviesMusic_Movies_raw.json'
+        domain2_file = './data/MoviesMusic_Music_raw.json'
+    elif domains == "Music_Movies":
+        domain1_file = './data/MusicMovies_Music_raw.json'
+        domain2_file = './data/MusicMovies_Movies_raw.json'
     elif domains == "Books_Movies":
-        domain1_file = './BooksMovies_Books_alcdr.json'
-        domain2_file = './BooksMovies_Movies_alcdr.json'
-        # domain1_file = './BooksMovies_Books.json'
-        # domain2_file = './BooksMovies_Movies.json'
+        domain1_file = './data/BooksMovies_Books_raw.json'
+        domain2_file = './data/BooksMovies_Movies_raw.json'
+    elif domains == "Movies_Books":
+        domain1_file = './data/MoviesBooks_Movies_raw.json'
+        domain2_file = './data/MoviesBooks_Books_raw.json'
     elif domains == "Books_Music":
-        domain1_file = './BooksMusic_Books_alcdr.json'
-        domain2_file = './BooksMusic_Music_alcdr.json'
-        # domain1_file = './BooksMusic_Books.json'
-        # domain2_file = './BooksMusic_Music.json'
+        domain1_file = './data/BooksMusic_Books_raw.json'
+        domain2_file = './data/BooksMusic_Music_raw.json'
+    elif domains == "Music_Books":
+        domain1_file = './data/MusicBooks_Music_raw.json'
+        domain2_file = './data/MusicBooks_Books_raw.json'
 
     with open(domain1_file) as json_file:
         domain_1 = json.load(json_file)
 
     with open(domain2_file) as json_file:
         domain_2 = json.load(json_file)
-
-    print(len(domain_1))
 
     users = []
     for u in domain_1:
@@ -160,7 +40,7 @@ def train_eval_test_split_per_domain(domains):
     train_len = int(0.8 * len(users))
     eval_len = int(0.1 * len(users))
 
-    fraction_training = int(train_len * ratio)
+    fraction_training = int(train_len * split_ratio)
     train_users = users[:fraction_training]
     eval_users = users[train_len:train_len + eval_len]
     test_users = users[train_len + eval_len:]
@@ -171,12 +51,6 @@ def train_eval_test_split_per_domain(domains):
     training_records_source = []
     training_records_target = []
 
-    # all the records in the source domain are used as training samples
-    # for u in users:
-    #     for record in domain_1[u]:
-    #         training_records_source.append(record)
-
-    #############
     for u in train_users:
         for record in domain_1[u]:
             training_records_source.append(record)
@@ -211,14 +85,23 @@ def train_eval_test_split_per_domain(domains):
 
 def get_unlabeled_data(domains, mode='summary'):
     if domains =="Movies_Music":
-        domain1_file = './Movies_30_10.json'
-        domain2_file = './Music_30_10.json'
+        domain1_file = './data/Movies_unlabeled.json'
+        domain2_file = './data/Music_unlabeled.json'
+    elif domains == "Music_Movies":
+        domain1_file = './data/Music_unlabeled.json'
+        domain2_file = './data/Movies_unlabeled.json'
     elif domains == "Books_Movies":
-        domain1_file = './Books_30_10.json'
-        domain2_file = './Movies_30_10.json'
+        domain1_file = './data/Books_unlabeled.json'
+        domain2_file = './data/Movies_unlabeled.json'
+    elif domains == "Movies_Books":
+        domain1_file = './data/Movies_unlabeled.json'
+        domain2_file = './data/Books_unlabeled.json'
     elif domains == "Books_Music":
-        domain1_file = './Books_30_10.json'
-        domain2_file = './Music_30_10.json'
+        domain1_file = './data/Books_unlabeled.json'
+        domain2_file = './data/Music_unlabeled.json'
+    elif domains == "Music_Books":
+        domain1_file = './data/Music_unlabeled.json'
+        domain2_file = './data/Books_unlabeled.json'
 
     with open(domain1_file) as json_file:
         domain_1 = json.load(json_file)
@@ -254,9 +137,8 @@ def get_unlabeled_data(domains, mode='summary'):
 
 
 def get_dataloaders_all_reviews(domain='Books_Movies', bs=64, num_of_augmentation=0, max_reviews_len=200, mode='summary'):
-    train_source_list, train_target_list, eval_list, test_list, cold_start_users= train_eval_test_split_per_domain(domain)
+    train_source_list, train_target_list, eval_list, test_list, cold_start_users= train_eval_test_split(domain)
 
-    # train_source_list, train_target_list, eval_list, test_list = train_eval_test_split_CATN_setup(domain)
     unlabeled_source, unlabeled_target = get_unlabeled_data(domain, mode=mode)
 
     reviewer = set()
@@ -326,8 +208,6 @@ def get_dataloaders_all_reviews(domain='Books_Movies', bs=64, num_of_augmentatio
     # generate eval/test users target representation
     # in summary mode, reviews are normally within 200 words
     cold_start_target_dict = aux_proc.generate_target_aux_doc(cold_start_users, domain=domain, mode=mode)
-    # with open('./Movies_Music_seed_0.json') as json_file:
-    #     cold_start_target_dict = json.load(json_file)
 
     for user in cold_start_target_dict:
         review = utils.remove_stopwords(cold_start_target_dict[user])
@@ -391,8 +271,6 @@ def get_dataloaders_all_reviews(domain='Books_Movies', bs=64, num_of_augmentatio
     for p in product_reviews:
         concated.append(product_reviews[p])
 
-    print('# of users + products: ' + str(len(concated)))
-
     for us in unlabeled_source:
         concated.append(unlabeled_source[us])
 
@@ -444,12 +322,10 @@ def get_dataloaders_all_reviews(domain='Books_Movies', bs=64, num_of_augmentatio
     unlabeled_source_data = models.Unlabeled_Dataset(tokenized_unlabeled_source, domain_label=0)
     unlabeled_target_data = models.Unlabeled_Dataset(tokenized_unlabeled_target, domain_label=1)
 
-    # unlabeled_data = models.Unlabeled_Dataset(tokenized_unlabeled_source, tokenized_unlabeled_target)
-
     train_dataloader = DataLoader(train_data, batch_size=bs, shuffle=True)
     eval_dataloader = DataLoader(eval_data, batch_size=bs, shuffle=False)
     test_dataloader = DataLoader(test_data, batch_size=bs, shuffle=False)
-    # unlabled_dataloader = DataLoader(unlabeled_data, batch_size=bs, shuffle=True)
+
     unlabled_source_dataloader = DataLoader(unlabeled_source_data, batch_size=bs//2, shuffle=True)
     unlabled_target_dataloader = DataLoader(unlabeled_target_data, batch_size=bs//2, shuffle=True)
 
