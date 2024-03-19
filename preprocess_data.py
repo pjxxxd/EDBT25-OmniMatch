@@ -126,13 +126,6 @@ def prepare_unlabeled_data(datasets, domain_name):
         if product[k] < 30:
             product.pop(k)
 
-    # count = 0
-    # while count < len(data):
-    #     if data[count]['asin'] not in product:
-    #         data.pop(count)
-    #     else:
-    #         count += 1
-
     print('remove products done')
 
     reviewer = {}
@@ -166,6 +159,32 @@ def prepare_unlabeled_data(datasets, domain_name):
     # print('numebr of users: ' + str(len(reviewer)))
     # print('numebr of products: ' + str(len(product)))
 
+def data_conversion(data, domain_name, mode='summary'):
+
+    whole_target_data = data[domain_name]
+
+    converted_data = {}
+
+    for record in tqdm(whole_target_data):
+        user_id = record['reviewerID']
+        product_id = record['asin']
+        # reviewText or summary
+        review = record[mode]
+
+        if user_id not in converted_data:
+            converted_data[user_id] = {}
+            converted_data[user_id][product_id] = review
+        else:
+            converted_data[user_id][product_id] = review
+
+    output_file_name = './data/converted_' + domain_name + '_' + mode + '.json'
+
+    if not os.path.isdir('data'):
+        os.mkdir('data')
+
+    with open(output_file_name, 'w', encoding='utf8') as json_file:
+        json.dump(converted_data, json_file, ensure_ascii=False)
+
 def main():
   all_datasets = read_datasets()
   prepare_unlabeled_data(all_datasets, 'Books')
@@ -178,6 +197,9 @@ def main():
   preprocess_two_domains(all_datasets, 'Music', 'Movies')
   preprocess_two_domains(all_datasets, 'Music', 'Books')
   generate_product_ratings_dict(all_datasets)
+  data_conversion(all_datasets, "Books")
+  data_conversion(all_datasets, "Movies")
+  data_conversion(all_datasets, "Music")
 
 if __name__ == '__main__':
     main()
