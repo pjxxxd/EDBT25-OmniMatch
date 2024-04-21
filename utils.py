@@ -316,7 +316,6 @@ def evaluate(evalation_dataloader, model):
     rmse_loss = math.sqrt(avg_eval_loss)
 
     avg_mae_loss = eval_mae_total_loss / len(evalation_dataloader)
-    mae_loss = math.sqrt(avg_mae_loss)
 
     return rmse_loss, mae_loss
 
