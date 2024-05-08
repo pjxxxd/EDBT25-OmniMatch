@@ -1,6 +1,7 @@
 import json
 import gzip
 import os
+from tqdm import tqdm
 
 def read_datasets():
   movies_lines = []
