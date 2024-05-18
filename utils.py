@@ -309,11 +309,10 @@ def evaluate(evalation_dataloader, model):
             evaluation_loss = loss_fn(eval_model_output, eval_labels.view(-1,1))
             mae_loss = mae_loss_fn(eval_model_output, eval_labels.view(-1,1))
 
-            eval_total_loss += evaluation_loss.item()
+            eval_total_loss += math.sqrt(evaluation_loss.item())
             eval_mae_total_loss += mae_loss.item()
 
     avg_eval_loss = eval_total_loss / len(evalation_dataloader)
-    rmse_loss = math.sqrt(avg_eval_loss)
 
     avg_mae_loss = eval_mae_total_loss / len(evalation_dataloader)
 
@@ -406,35 +405,3 @@ def initilize_Baseline(pretrained_embedding=None,
                                lr=learning_rate)
 
     return cnn_model, optimizer
-
-
-def evaluate_DeepCoNN(evalation_dataloader, model):
-    eval_total_loss = 0
-    eval_mae_total_loss = 0
-
-    device = get_device()
-    loss_fn = nn.MSELoss()
-    mae_loss_fn = nn.L1Loss()
-
-    model.eval()
-    with torch.no_grad():
-        for step, batch in enumerate(tqdm(evalation_dataloader)):
-
-            eval_user_input_ids = batch[0].to(device)
-            eval_product_input_ids = batch[2].to(device)
-            eval_labels = batch[3].to(device)
-
-            eval_model_output = model(eval_user_input_ids, eval_product_input_ids)
-
-            evaluation_loss = loss_fn(eval_model_output, eval_labels.view(-1,1))
-            mae_loss = mae_loss_fn(eval_model_output, eval_labels.view(-1,1))
-
-            eval_total_loss += evaluation_loss.item()
-            eval_mae_total_loss += mae_loss.item()
-
-    avg_eval_loss = eval_total_loss / len(evalation_dataloader)
-    rmse_loss = math.sqrt(avg_eval_loss)
-
-    avg_mae_loss = eval_mae_total_loss / len(evalation_dataloader)
-
-    return rmse_loss, avg_mae_loss
