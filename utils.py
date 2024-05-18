@@ -317,7 +317,7 @@ def evaluate(evalation_dataloader, model):
 
     avg_mae_loss = eval_mae_total_loss / len(evalation_dataloader)
 
-    return rmse_loss, mae_loss
+    return rmse_loss, avg_mae_loss
 
 
 def initilize_model(pretrained_embedding=None,
@@ -436,74 +436,5 @@ def evaluate_DeepCoNN(evalation_dataloader, model):
     rmse_loss = math.sqrt(avg_eval_loss)
 
     avg_mae_loss = eval_mae_total_loss / len(evalation_dataloader)
-    mae_loss = avg_mae_loss
 
-    return rmse_loss, mae_loss
-
-
-def evaluate_analysis(evalation_dataloader, model):
-    eval_total_loss = 0
-
-    device = get_device()
-    loss_fn = nn.MSELoss()
-
-    model.eval()
-
-    total = 0
-    count = 0
-
-    with torch.no_grad():
-        for step, batch in enumerate(tqdm(evalation_dataloader)):
-
-            # if step <= 10:
-
-            eval_user_input_ids = batch[0].to(device)
-            eval_user_input_ids_target = batch[1].to(device)
-            eval_product_input_ids = batch[2].to(device)
-            eval_labels = batch[3].to(device)
-            u_rs_s = batch[4]
-            u_rs_t = batch[5]
-            p_rs = batch[6]
-
-            eval_model_output, _, _ = model(eval_user_input_ids, eval_user_input_ids_target, eval_product_input_ids)
-
-            evaluation_loss = loss_fn(eval_model_output, eval_labels.view(-1,1))
-
-            eval_total_loss += evaluation_loss.item()
-
-
-            eval_list = []
-            for l in eval_model_output.view(-1, 1).tolist():
-                eval_list.append(l[0])
-
-            for i in range(len(eval_list)):
-                # if p_rs[i] != 'This item has no reviews':
-                total += (eval_list[i] - eval_labels[i]) ** 2
-                count += 1
-
-            # print('eval model output')
-            # print(eval_list)
-            # print('--------')
-            # print('eval label output')
-            # print(eval_labels.tolist())
-            # print('--------')
-
-            # count = 0
-            # for i in range(len(eval_list)):
-            #     if abs(eval_labels[i] - eval_list[i]) < 0.3 and eval_labels[i] == 5:
-            #         # print(i)
-            #         print('---')
-            #         print(eval_list[i])
-            #         print(eval_labels[i])
-            #         print(u_rs_s[i])
-            #         print('*******')
-            #         print(u_rs_t[i])
-            #         print('*******')
-            #         print(p_rs[i])
-            #         print('---')
-
-
-    avg_eval_loss = eval_total_loss / len(evalation_dataloader)
-    print('mse = ' + str(total/ count))
-
-    return avg_eval_loss
+    return rmse_loss, avg_mae_loss
