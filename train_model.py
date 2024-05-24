@@ -10,6 +10,10 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--seed', type=int, default=0)
+parser.add_argument('--bs', type=int, default=64)
+parser.add_argument('--alpha', type=float, default=0.1)
+parser.add_argument('--beta', type=float, default=0.25)
+parser.add_argument('--domain, type=string, default='Books_Movies')
 args = parser.parse_args()
 utils.set_seed(args.seed)
 print('*************')
@@ -18,7 +22,7 @@ print('*************')
 device = utils.get_device()
 
 train_dataloader, eval_dataloader, test_dataloader, unlabled_source_dataloader, unlabled_target_dataloader, word2idx = dataPreprocessing.get_dataloaders_all_reviews(
-    domain='Books_Movies', bs=64, num_of_augmentation=0, mode='summary')
+    domain=arg.domain, bs=arg.bs, num_of_augmentation=0, mode='summary')
 
 loss_fn_ce = nn.CrossEntropyLoss()
 loss_fn = nn.MSELoss()
@@ -105,8 +109,8 @@ for epoch_i in range(epochs):
         sum_domain_loss = source_domain_loss + target_domain_loss
         sum_specific_loss = source_specific_domain_loss + target_specific_domain_loss
 
-        domain_ratio = 0.25
-        sup_con_ratio = 0.1
+        domain_ratio = arg.beta
+        sup_con_ratio = arg.alpha
         # combine all losses
         combined_loss = mse_loss + domain_ratio * sum_domain_loss + domain_ratio * sum_specific_loss + sup_con_ratio * scl_loss
 
