@@ -288,12 +288,12 @@ def get_device():
 
 
 def evaluate(evalation_dataloader, model):
-    eval_total_loss = 0
-    eval_mae_total_loss = 0
 
     device = get_device()
     loss_fn = nn.MSELoss()
     mae_loss_fn = nn.L1Loss()
+
+    targets, predicts = list(), list()
 
     model.eval()
     with torch.no_grad():
@@ -306,17 +306,16 @@ def evaluate(evalation_dataloader, model):
 
             eval_model_output, _, _ = model(eval_user_input_ids, eval_user_input_ids_target, eval_product_input_ids)
 
-            evaluation_loss = loss_fn(eval_model_output, eval_labels.view(-1,1))
-            mae_loss = mae_loss_fn(eval_model_output, eval_labels.view(-1,1))
+            targets.extend(eval_labels.view(-1,1).tolist())
+            predicts.extend(eval_model_output.tolist())
 
-            eval_total_loss += math.sqrt(evaluation_loss.item())
-            eval_mae_total_loss += mae_loss.item()
+    targets = torch.tensor(targets).float()
+    predicts = torch.tensor(predicts)
 
-    avg_eval_loss = eval_total_loss / len(evalation_dataloader)
+    rmse_loss = torch.sqrt(loss_fn(targets, predicts)).item()
+    mae_loss = mae_loss_fn(targets, predicts).item()
 
-    avg_mae_loss = eval_mae_total_loss / len(evalation_dataloader)
-
-    return rmse_loss, avg_mae_loss
+    return rmse_loss, mae_loss
 
 
 def initilize_model(pretrained_embedding=None,
